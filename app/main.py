@@ -5,7 +5,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.application.use_cases.seed_admin import SeedAdmin
 from app.domain.exceptions import DomainError, UserAlreadyExists
@@ -88,12 +87,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         logger.exception("Unhandled error on %s %s", request.method, request.url.path)
         return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
-    if resolved.is_production:
-        allowed_hosts = list(resolved.trusted_host_list)
-        for extra in ("localhost", "127.0.0.1"):
-            if extra not in allowed_hosts:
-                allowed_hosts.append(extra)
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=resolved.cors_origin_list,

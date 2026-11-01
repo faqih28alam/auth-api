@@ -56,5 +56,3 @@ def ensure_production_safe(settings: Settings) -> None:
         raise RuntimeError("MONGODB_URI must include credentials in production.")
     if not settings.cors_origin_list or "*" in settings.cors_origin_list:
         raise RuntimeError("CORS_ORIGINS must be an explicit allowlist in production.")
-    if not settings.trusted_host_list or "*" in settings.trusted_host_list:
-        raise RuntimeError("TRUSTED_HOSTS must be an explicit allowlist in production.")

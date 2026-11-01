@@ -27,7 +27,7 @@ cp .env.example .env
 Copy-Item .env.example .env
 ```
 
-`.env.example` is safe to copy for local use. Before a production deploy, set a long random `JWT_SECRET`, replace `MONGO_INITDB_ROOT_PASSWORD` (and the matching password inside `MONGODB_URI`), set `ADMIN_PASSWORD`, and set `CORS_ORIGINS` and `TRUSTED_HOSTS` to the real hostnames. `ENVIRONMENT=production` refuses to start when `JWT_SECRET` is still the example value or shorter than 32 characters. If the admin password is still `Admin123`, the process starts and logs a warning.
+`.env.example` is safe to copy for local use. Before a production deploy, set a long random `JWT_SECRET`, replace `MONGO_INITDB_ROOT_PASSWORD` (and the matching password inside `MONGODB_URI`), set `ADMIN_PASSWORD`, and set `CORS_ORIGINS` to the browser origin. The API accepts any `Host` header. `ENVIRONMENT=production` refuses to start when `JWT_SECRET` is still the example value or shorter than 32 characters. If the admin password is still `Admin123`, the process starts and logs a warning.
 
 Access tokens last 15 minutes. Refresh tokens last 7 days, rotate on every refresh, and are revoked on logout and on password change. A deactivated account fails the next request immediately, because each request loads the user from the database. Logout revokes the refresh token; an access token that was already issued remains valid until it expires unless the account is deactivated.
 
@@ -45,7 +45,7 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 cp .env.example .env
 docker compose up -d mongo
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 Stop the API with Ctrl+C in that terminal. Stop MongoDB with:
@@ -82,7 +82,7 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 Copy-Item .env.example .env
 docker compose up -d mongo
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 Stop the API with Ctrl+C. Stop MongoDB with:
@@ -149,7 +149,7 @@ The API listens on port 8001. MongoDB listens on port 27017 so host tools and a 
 
 ## Production on a server
 
-Terminate HTTPS in a reverse proxy on the same machine. The production Compose file publishes the API on `127.0.0.1:8001` only, and it does not publish MongoDB. A Caddy site block is enough:
+Uvicorn listens on `0.0.0.0:8001`, so the API accepts connections from outside the machine. Every `Host` header is allowed, including a public domain or server IP. MongoDB is not published. Terminate HTTPS in a reverse proxy when you expose the service:
 
 ```text
 api.example.com {
@@ -157,13 +157,13 @@ api.example.com {
 }
 ```
 
-Set `TRUSTED_HOSTS` to that public hostname and `CORS_ORIGINS` to the browser origin. The app also accepts `localhost` and `127.0.0.1` so the container health check can call the API on the loopback interface. Then:
+Set `CORS_ORIGINS` to the browser origin. Then:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` before the first start: replace `JWT_SECRET`, `MONGO_INITDB_ROOT_PASSWORD`, the password embedded in `MONGODB_URI`, and `ADMIN_PASSWORD`. Set `CORS_ORIGINS` and `TRUSTED_HOSTS`.
+Edit `.env` before the first start: replace `JWT_SECRET`, `MONGO_INITDB_ROOT_PASSWORD`, the password embedded in `MONGODB_URI`, and `ADMIN_PASSWORD`. Set `CORS_ORIGINS`.
 
 Run:
 
